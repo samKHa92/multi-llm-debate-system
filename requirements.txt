@@ -1,0 +1,14 @@
+# Core dependencies (required for mock mode + evaluation + plots)
+pydantic>=2.5
+python-dotenv>=1.0
+pandas>=2.0
+matplotlib>=3.7
+tqdm>=4.66
+pytest>=7.4
+
+# Optional provider SDKs (only needed for --mode real).
+# Uncomment / install the ones you actually use.
+# openai>=1.30
+# anthropic>=0.25
+# google-generativeai>=0.5
+# xAI uses an OpenAI-compatible API, so the `openai` package above is enough.

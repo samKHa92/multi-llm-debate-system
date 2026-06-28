@@ -1,0 +1,26 @@
+problem_id,category,correct_answer,solver_1_initial_answer,solver_2_initial_answer,solver_3_initial_answer,solver_1_refined_answer,solver_2_refined_answer,solver_3_refined_answer,judge_winner,debate_final_answer,debate_correct,voting_answer,voting_correct,consensus_type,improved_after_refinement,judge_correct_when_disagreement,single_gpt_correct,single_claude_correct,single_gemini_correct,single_grok_correct
+game_001,game_theory,B,B,C,C,B,B,B,solver_1,B,True,C,False,partial,True,,True,False,False,True
+game_002,game_theory,defect,defect,alternative_4,defect,alternative_3,defect,defect,solver_1,alternative_3,False,defect,True,partial,False,False,False,False,True,False
+game_003,game_theory,yes,yes,yes,alternative_4,yes,yes,alternative_4,solver_1,yes,True,yes,True,partial,False,True,False,True,False,False
+game_004,game_theory,1,1,1,1,1,1,1,solver_1,1,True,1,True,full,False,,True,True,True,False
+logic_001,logic_constraint,knave,knave,alternative_4,knave,knave,knave,knave,solver_1,knave,True,knave,True,partial,True,,True,True,True,True
+logic_002,logic_constraint,B,B,B,B,B,alternative_1,B,solver_1,B,True,B,True,full,False,True,True,True,False,True
+logic_003,logic_constraint,B,B,B,B,B,B,B,solver_1,B,True,B,True,full,False,,True,False,True,False
+logic_004,logic_constraint,30,30,30,34,30,30,30,solver_1,30,True,30,True,partial,True,,False,True,True,False
+logic_005,logic_constraint,7.5,7.5,7.5,7.5,7.5,7.5,7.5,solver_1,7.5,True,7.5,True,full,False,,False,True,True,False
+logic_006,logic_constraint,240,240,244,244,240,240,240,solver_2,240,True,244,False,partial,True,,True,True,False,False
+logic_007,logic_constraint,Apples & Oranges,Apples & Oranges,Apples & Oranges,alternative_4,Apples & Oranges,Apples & Oranges,Apples & Oranges,solver_1,Apples & Oranges,True,Apples & Oranges,True,partial,True,,True,False,False,True
+math_001,mathematical_reasoning,153,153,157,153,153,153,153,solver_1,153,True,153,True,partial,True,,True,True,False,True
+math_002,mathematical_reasoning,24,24,24,24,24,24,24,solver_1,24,True,24,True,full,False,,False,True,False,True
+math_003,mathematical_reasoning,24,28,24,28,28,24,28,solver_2,24,True,28,False,partial,False,True,True,False,True,True
+math_004,mathematical_reasoning,2318,2318,2318,2318,2318,2318,2318,solver_1,2318,True,2318,True,full,False,,True,True,False,False
+math_005,mathematical_reasoning,0.375,0.375,0.375,0.375,0.375,0.875,0.375,solver_3,0.375,True,0.375,True,full,False,True,True,True,False,True
+math_006,mathematical_reasoning,1,1,1,1,1,1,2,solver_1,1,True,1,True,full,False,True,True,True,True,False
+math_007,mathematical_reasoning,40320,40320,40320,40320,40320,40320,40320,solver_1,40320,True,40320,True,full,False,,False,True,True,False
+math_008,mathematical_reasoning,60,64,60,60,60,60,60,solver_1,60,True,60,True,partial,True,,False,False,False,True
+phys_001,physics_science,0.289,2.289,0.289,0.289,2.289,0.289,0.289,solver_2,0.289,True,0.289,True,partial,False,True,True,True,False,False
+phys_002,physics_science,5.1,5.1,7.1,5.6,5.1,5.1,5.1,solver_1,5.1,True,,False,none,True,,True,False,True,False
+phys_003,physics_science,54,54,54,54,54,54,54,solver_1,54,True,54,True,full,False,,True,True,True,False
+phys_004,physics_science,1.0,1.0,1.0,1.0,1.0,1.0,1.0,solver_1,1.0,True,1.0,True,full,False,,False,True,True,False
+phys_005,physics_science,41860,41864,41864,41860,41864,41864,41860,solver_3,41860,True,41864,False,partial,False,True,True,False,False,True
+phys_006,physics_science,2.48,2.48,2.48,4.48,2.48,2.48,2.48,solver_1,2.48,True,2.48,True,partial,True,,True,True,True,True

@@ -1,0 +1,25 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.ipynb_checkpoints/
+
+# Per-problem traces are large and fully regenerable, so keep them out of git
+# (the folder is preserved via .gitkeep).
+outputs/runs/*
+!outputs/runs/.gitkeep
+
+# NOTE: outputs/plots/*.png, outputs/results.csv and outputs/metrics.json ARE
+# committed on purpose - the generated plots are a required deliverable and the
+# results table documents the run.

@@ -1,0 +1,34 @@
+"""OpenAI (GPT) client wrapper.
+
+Requires the ``openai`` package and an ``OPENAI_API_KEY`` in the environment.
+The SDK is imported lazily so that mock mode never needs it installed.
+"""
+
+from __future__ import annotations
+
+from ..config import get_env
+from .base import BaseLLMClient
+
+
+class OpenAIClient(BaseLLMClient):
+    def __init__(self, model_name: str | None = None) -> None:
+        super().__init__(name="gpt", model_name=model_name or get_env("OPENAI_MODEL", "gpt-4o-mini"))
+        api_key = get_env("OPENAI_API_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "OPENAI_API_KEY is not set. Add it to your .env file or use --mode mock."
+            )
+        try:
+            from openai import OpenAI  # lazy import
+        except ImportError as exc:  # pragma: no cover - depends on optional dep
+            raise RuntimeError("The 'openai' package is required for OpenAIClient. Run: pip install openai") from exc
+        self._client = OpenAI(api_key=api_key)
+
+    def generate(self, prompt: str, temperature: float = 0.2, max_tokens: int = 1500) -> str:
+        resp = self._client.chat.completions.create(
+            model=self.model_name,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        return resp.choices[0].message.content or ""
