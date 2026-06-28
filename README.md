@@ -7,7 +7,7 @@ a fourth model acts as the **Final Judge** that selects the best solution.
 
 The whole system runs **end-to-end with zero API keys** thanks to a built-in
 deterministic mock client, and switches to real providers (OpenAI, Anthropic,
-Google, xAI) with a single flag.
+Google Gemini Enterprise, xAI Grok) with a single flag.
 
 ---
 
@@ -18,13 +18,16 @@ Google, xAI) with a single flag.
 - [Workflow stages](#workflow-stages)
 - [Dataset](#dataset)
 - [Setup](#setup)
-- [Configuring API keys (`.env`)](#configuring-api-keys-env)
+- [Dependencies](#dependencies)
+- [Environment configuration (`.env`)](#environment-configuration-env)
+- [Google Gemini Enterprise (ADC)](#google-gemini-enterprise-adc)
 - [Running in mock mode](#running-in-mock-mode)
 - [Running in real mode](#running-in-real-mode)
 - [Generating plots](#generating-plots)
 - [Evaluation metrics](#evaluation-metrics)
 - [Example debate trace](#example-debate-trace)
 - [Tests](#tests)
+- [Troubleshooting](#troubleshooting)
 - [Limitations](#limitations)
 - [Future improvements](#future-improvements)
 
@@ -62,9 +65,10 @@ multi-llm-debate-system/
 │   ├── llm_clients/              # interchangeable provider clients
 │   │   ├── base.py               # BaseLLMClient interface
 │   │   ├── mock_client.py        # deterministic offline client (no keys)
+│   │   ├── openai_compat.py      # shared OpenAI/xAI chat helper (token param fallback)
 │   │   ├── openai_client.py      # GPT
 │   │   ├── anthropic_client.py   # Claude
-│   │   ├── google_client.py      # Gemini
+│   │   ├── google_client.py      # Gemini (Enterprise ADC or API key)
 │   │   └── xai_client.py         # Grok (OpenAI-compatible)
 │   ├── prompts/                  # one strict-JSON prompt builder per stage
 │   ├── pipeline/
@@ -139,63 +143,186 @@ Supported `answer_type` values: `integer`, `float` (optional `tolerance`),
 
 ## Setup
 
-Requires **Python 3.11+**.
+Requires **Python 3.11+** (tested on **Python 3.12**).
 
 ```bash
-# 1. (recommended) create a virtual environment
+# 1. Create and activate a virtual environment
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+source .venv/bin/activate        # Windows PowerShell: .\.venv\Scripts\Activate.ps1
 
-# 2. install dependencies
+# 2. Install dependencies
 pip install -r requirements.txt
+
+# 3. For real mode, also ensure provider SDKs are installed (included in requirements.txt):
+pip install openai anthropic google-genai
+
+# 4. Copy environment template
+cp .env.example .env             # Windows: copy .env.example .env
 ```
 
-Only the core libraries are required for mock mode. The provider SDKs
-(`openai`, `anthropic`, `google-generativeai`) are optional and listed
-(commented) at the bottom of `requirements.txt`.
+## Dependencies
 
-## Configuring API keys (`.env`)
+### Core (required — mock mode works with these alone)
 
-Mock mode needs **no keys**. For real mode, copy the template and fill in the
-providers you want:
+| Package | Purpose |
+|---|---|
+| `pydantic` | Data schemas and validation |
+| `python-dotenv` | Load `.env` configuration |
+| `pandas` | Results table (`results.csv`) |
+| `matplotlib` | Evaluation plots |
+| `tqdm` | Progress bars during runs |
+| `pytest` | Unit and integration tests |
+
+### Real-mode provider SDKs
+
+| Package | Provider | Notes |
+|---|---|---|
+| `openai` | OpenAI (GPT) + xAI (Grok) | Grok uses xAI's OpenAI-compatible API |
+| `anthropic` | Anthropic (Claude) | |
+| `google-genai` | Google Gemini | Enterprise ADC or API key |
+
+### Optional (notebooks)
+
+| Package | Purpose |
+|---|---|
+| `jupyter`, `nbconvert`, `ipykernel` | Run the three notebooks locally |
+
+Install everything for a full dev setup:
 
 ```bash
-cp .env.example .env     # Windows: copy .env.example .env
+pip install -r requirements.txt
+pip install jupyter nbconvert ipykernel   # optional
 ```
+
+## Environment configuration (`.env`)
+
+Mock mode needs **no keys**. For real mode, copy `.env.example` to `.env` and fill
+in your credentials and model names.
+
+**Example real-mode configuration** (verified working setup):
 
 ```ini
+# --- OpenAI (GPT) ---
 OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=...
-GOOGLE_API_KEY=...
-XAI_API_KEY=...
+OPENAI_MODEL=gpt-5.4-mini
+
+# --- Anthropic (Claude) ---
+ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_MODEL=claude-haiku-4-5
+
+# --- Google (Gemini Enterprise — see next section) ---
+GOOGLE_GENAI_USE_ENTERPRISE=true
+GOOGLE_CLOUD_PROJECT=multi-llm-debate-system
+GOOGLE_CLOUD_LOCATION=global
+GOOGLE_MODEL=gemini-2.5-flash
+
+# --- xAI (Grok) ---
+XAI_API_KEY=xai-...
+XAI_MODEL=grok-3
+XAI_BASE_URL=https://api.x.ai/v1
 ```
 
 Keys are read via `python-dotenv`. They are **never hardcoded**, and `.env` is
-git-ignored. A missing key raises a clear error telling you to add it or use
-mock mode.
+git-ignored.
+
+### Model name notes
+
+| Provider | Valid examples | Retired / invalid examples |
+|---|---|---|
+| OpenAI | `gpt-5.4-mini`, `gpt-4o-mini` | — |
+| Anthropic | `claude-haiku-4-5`, `claude-sonnet-4-6` | — |
+| Google Enterprise | `gemini-2.5-flash`, `gemini-3.5-flash` | `gemini-2.0-flash`, `gemini-2.0-flash-001` (404 on many projects) |
+| xAI | `grok-3`, `grok-4.3` | `grok-2-latest` (removed) |
 
 > **Free option:** As the assignment allows, you can point all four roles at a
-> single free model by setting the same model id in the `*_MODEL` env vars; the
-> four roles still run as four independent calls with different prompts.
+> single model by setting the same model id in each `*_MODEL` variable; the four
+> roles still run as four independent API calls with different prompts.
+
+## Google Gemini Enterprise (ADC)
+
+Many organizations **disallow Google API keys**. This project supports
+**Application Default Credentials (ADC)** via the Gemini Enterprise Agent
+Platform.
+
+### Prerequisites
+
+1. A GCP project with **billing enabled**
+2. **Agent Platform API** enabled in Google Cloud Console
+3. Your user account granted **`roles/aiplatform.user`** on the project
+4. [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) installed
+
+### One-time authentication
+
+```bash
+gcloud auth login
+gcloud config set project YOUR_PROJECT_ID
+gcloud auth application-default login
+gcloud auth application-default set-quota-project YOUR_PROJECT_ID
+```
+
+Verify ADC works:
+
+```bash
+gcloud auth application-default print-access-token
+```
+
+### Quick Google-only test
+
+```bash
+python -c "from google import genai; from google.genai.types import HttpOptions; c=genai.Client(enterprise=True, project='YOUR_PROJECT_ID', location='global', http_options=HttpOptions(api_version='v1')); print(c.models.generate_content(model='gemini-2.5-flash', contents='Say OK').text)"
+```
+
+Set these in `.env` (no `GOOGLE_API_KEY` needed):
+
+```ini
+GOOGLE_GENAI_USE_ENTERPRISE=true
+GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID
+GOOGLE_CLOUD_LOCATION=global
+GOOGLE_MODEL=gemini-2.5-flash
+```
 
 ## Running in mock mode
 
+No API keys, no cost, fully deterministic — ideal for development and tests.
+
 ```bash
-# Full pipeline on 3 problems, offline and deterministic
+# Quick demo on 3 problems
 python main.py --mode mock --limit 3
 
-# Full 25-problem run with a named run id
+# Full 25-problem run
 python main.py --mode mock --run-id mock_demo
 ```
 
-This produces `outputs/runs/<run_id>/*.json`, `outputs/results.csv`,
-`outputs/metrics.json`, and the five plots in `outputs/plots/`.
+Produces `outputs/runs/<run_id>/*.json`, `outputs/results.csv`,
+`outputs/metrics.json`, and five plots in `outputs/plots/`.
 
 ## Running in real mode
 
+Real mode calls live APIs for all four providers. Expect **~20+ API calls per
+problem** and **~1–2 minutes per problem** depending on models and latency.
+
+### Recommended workflow
+
 ```bash
-python main.py --mode real --problems data/problems.jsonl
+# 1. Smoke test (1 problem — verify all 4 providers)
+python main.py --mode real --limit 1 --run-id real_smoke_01
+
+# 2. Small batch (3 problems)
+python main.py --mode real --limit 3 --run-id real_smoke_03
+
+# 3. Full dataset (25 problems)
+python main.py --mode real --run-id final_run_01
+
+# 4. Resume after interruption
 python main.py --mode real --run-id final_run_01 --skip-existing true
+```
+
+On success you should see output like:
+
+```text
+Mode: real | Run ID: real_smoke_01 | Problems: 1
+Clients: gpt=gpt-5.4-mini, claude=claude-haiku-4-5, gemini=gemini-2.5-flash, grok=grok-3
+Debating: 100%|██████████| 1/1 [01:45<00:00, 105s/problem]
 ```
 
 **CLI arguments**
@@ -209,22 +336,24 @@ python main.py --mode real --run-id final_run_01 --skip-existing true
 | `--skip-existing` | `false` | Don't rerun problems that already have a cached trace |
 | `--no-plots` | off | Skip plot generation |
 
-**Caching / resuming.** Every problem run is saved immediately, so a crash or
-rate-limit doesn't lose progress. Re-running with `--skip-existing true` reuses
-cached traces and only computes missing problems.
+**Caching / resuming.** Every problem run is saved immediately to
+`outputs/runs/{run_id}/{problem_id}.json`. Re-running with `--skip-existing true`
+reuses cached traces and only processes missing problems.
 
 ## Generating plots
 
-Plots are generated automatically at the end of every run. To (re)generate them
-from an existing run without re-running the debate, use notebook
-`03_evaluation_plots.ipynb`, or:
+Plots are generated automatically at the end of every run. To regenerate from an
+existing run without re-running the debate:
 
 ```python
 from src.pipeline.evaluation import evaluate_run
 from src.plotting import generate_all_plots
-df, metrics = evaluate_run("mock_demo")
+
+df, metrics = evaluate_run("final_run_01")
 generate_all_plots(metrics)
 ```
+
+Or open notebook `notebooks/03_evaluation_plots.ipynb`.
 
 Generated figures (in `outputs/plots/`):
 
@@ -244,19 +373,18 @@ solver answers, `judge_winner`, `debate_final_answer`, `debate_correct`,
 
 Computed system metrics (also saved to `outputs/metrics.json`):
 
-- **Overall Accuracy** — % of problems where the final debate answer is correct.
+- **Overall Accuracy** — % of problems where the final debate answer is correct
 - **Improvement Rate** — % of problems where refinement increased the number of
-  correct solver answers.
-- **Consensus Rate** — % of problems where all 3 solvers initially agreed.
-- **Judge Accuracy (disagreement)** — when solvers disagree, how often the
-  judge picks a correct answer.
-- **Single-LLM Baseline Accuracy** — average accuracy of each model answering
-  once (also reported per model).
-- **Simple Voting Baseline Accuracy** — majority of the 3 initial answers.
-- **Full Debate System Accuracy** — the headline number.
+  correct solver answers
+- **Consensus Rate** — % of problems where all 3 solvers initially agreed
+- **Judge Accuracy (disagreement)** — when solvers disagree, how often the judge
+  picks a correct answer
+- **Single-LLM Baseline Accuracy** — average accuracy of each model answering once
+- **Simple Voting Baseline Accuracy** — majority of the 3 initial answers
+- **Full Debate System Accuracy** — the headline number
 
-**Sample mock run (25 problems)** — illustrative numbers from the bundled
-deterministic mock (your real-API numbers will differ):
+**Sample mock run (25 problems)** — illustrative numbers from the deterministic
+mock client (real-API numbers will differ):
 
 | System | Accuracy |
 |---|---|
@@ -288,10 +416,24 @@ FINAL DEBATE ANSWER: 153   (correct)
 pytest -q
 ```
 
-The suite covers: deterministic role assignment (incl. tie-breaks), answer
-normalization/checking for all four answer types, a full mock pipeline run for
-one problem end-to-end, and that the evaluation output contains the expected
-fields.
+The suite (14 tests) covers:
+
+- Deterministic role assignment and tie-break priority
+- Answer normalization and checking for all four `answer_type` values
+- Full mock pipeline end-to-end for one problem
+- Evaluation CSV field completeness
+
+## Troubleshooting
+
+| Error | Likely cause | Fix |
+|---|---|---|
+| `Unsupported parameter: 'max_tokens'` (OpenAI) | Newer GPT models (e.g. `gpt-5.x`) | Already handled automatically via `openai_compat.py`; upgrade `openai` package |
+| `404 NOT_FOUND` (Google Gemini) | Wrong model name or location | Use `gemini-2.5-flash` with `GOOGLE_CLOUD_LOCATION=global` and `GOOGLE_GENAI_USE_ENTERPRISE=true` |
+| `Model not found: grok-2-latest` (xAI) | Retired model slug | Set `XAI_MODEL=grok-3` or `grok-4.3` |
+| `OPENAI_API_KEY is not set` | Missing `.env` | Copy `.env.example` to `.env` and fill in keys |
+| `gcloud: command not found` | Cloud SDK not on PATH | Install [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) and restart terminal |
+| ADC `invalid_grant` | Stale credentials file | Delete `%APPDATA%\gcloud\application_default_credentials.json`, rerun `gcloud auth application-default login` |
+| Run interrupted mid-dataset | Rate limits / network | Resume with `--skip-existing true` |
 
 ## Limitations
 
@@ -300,15 +442,15 @@ fields.
   plots, not real model capability — use `--mode real` for genuine results.
 - Answer checking is **string/numeric based**. Free-form `short_text` answers
   rely on the `accepted_answers` list; unusual phrasings may be marked wrong.
-- Real runs make **many API calls per problem** (4 self-assessments + 3 solves +
-  6 reviews + 3 refinements + 1 judge + 4 baselines), so cost/latency scale up.
+- Real runs make **many API calls per problem**, so cost and latency scale with
+  dataset size.
 - No automated retry/backoff on provider rate limits (use `--skip-existing` to
   resume).
 
 ## Future improvements
 
-- LLM-as-judge or embedding-based answer equivalence for `short_text`.
-- Async/parallel client calls to cut wall-clock time.
-- Retry with exponential backoff and per-provider rate limiting.
-- More problems and per-difficulty breakdowns in the plots.
-- Optional multi-round debate (more than one refinement round).
+- LLM-as-judge or embedding-based answer equivalence for `short_text`
+- Async/parallel client calls to cut wall-clock time
+- Retry with exponential backoff and per-provider rate limiting
+- More problems and per-difficulty breakdowns in the plots
+- Optional multi-round debate (more than one refinement round)
