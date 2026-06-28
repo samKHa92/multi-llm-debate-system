@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from ..config import get_env
 from .base import BaseLLMClient
+from .openai_compat import chat_completion
 
 
 class OpenAIClient(BaseLLMClient):
@@ -25,10 +26,10 @@ class OpenAIClient(BaseLLMClient):
         self._client = OpenAI(api_key=api_key)
 
     def generate(self, prompt: str, temperature: float = 0.2, max_tokens: int = 1500) -> str:
-        resp = self._client.chat.completions.create(
+        return chat_completion(
+            self._client,
             model=self.model_name,
             messages=[{"role": "user", "content": prompt}],
             temperature=temperature,
             max_tokens=max_tokens,
         )
-        return resp.choices[0].message.content or ""

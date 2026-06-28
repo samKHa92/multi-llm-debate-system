@@ -8,11 +8,12 @@ from __future__ import annotations
 
 from ..config import get_env
 from .base import BaseLLMClient
+from .openai_compat import chat_completion
 
 
 class XAIClient(BaseLLMClient):
     def __init__(self, model_name: str | None = None) -> None:
-        super().__init__(name="grok", model_name=model_name or get_env("XAI_MODEL", "grok-2-latest"))
+        super().__init__(name="grok", model_name=model_name or get_env("XAI_MODEL", "grok-3"))
         api_key = get_env("XAI_API_KEY")
         if not api_key:
             raise RuntimeError(
@@ -26,10 +27,10 @@ class XAIClient(BaseLLMClient):
         self._client = OpenAI(api_key=api_key, base_url=base_url)
 
     def generate(self, prompt: str, temperature: float = 0.2, max_tokens: int = 1500) -> str:
-        resp = self._client.chat.completions.create(
+        return chat_completion(
+            self._client,
             model=self.model_name,
             messages=[{"role": "user", "content": prompt}],
             temperature=temperature,
             max_tokens=max_tokens,
         )
-        return resp.choices[0].message.content or ""
