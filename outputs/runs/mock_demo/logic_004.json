@@ -1,0 +1,270 @@
+{
+  "run_id": "mock_demo",
+  "problem": {
+    "id": "logic_004",
+    "category": "logic_constraint",
+    "question": "How many distinct arrangements are there of the letters in the word 'LEVEL'?",
+    "correct_answer": "30",
+    "accepted_answers": [
+      "30"
+    ],
+    "answer_type": "integer",
+    "difficulty": "medium",
+    "tolerance": null,
+    "source_or_notes": "5!/(2!2!) = 120/4 = 30 (L and E each repeat twice)."
+  },
+  "assigned_roles": {
+    "judge": "claude",
+    "solvers": [
+      "gpt",
+      "gemini",
+      "grok"
+    ],
+    "solver_slots": {
+      "solver_1": "gpt",
+      "solver_2": "gemini",
+      "solver_3": "grok"
+    },
+    "assessments": [
+      {
+        "model_key": "gpt",
+        "solver_confidence": 0.54,
+        "judge_confidence": 0.52,
+        "reasoning": "As gpt, I weighed my strengths for problem logic_004. Solver confidence 0.54, judge confidence 0.52."
+      },
+      {
+        "model_key": "claude",
+        "solver_confidence": 0.65,
+        "judge_confidence": 0.9,
+        "reasoning": "As claude, I weighed my strengths for problem logic_004. Solver confidence 0.65, judge confidence 0.9."
+      },
+      {
+        "model_key": "gemini",
+        "solver_confidence": 0.54,
+        "judge_confidence": 0.48,
+        "reasoning": "As gemini, I weighed my strengths for problem logic_004. Solver confidence 0.54, judge confidence 0.48."
+      },
+      {
+        "model_key": "grok",
+        "solver_confidence": 0.79,
+        "judge_confidence": 0.64,
+        "reasoning": "As grok, I weighed my strengths for problem logic_004. Solver confidence 0.79, judge confidence 0.64."
+      }
+    ]
+  },
+  "initial_solutions": [
+    {
+      "solver_id": "solver_1",
+      "model_key": "gpt",
+      "reasoning": "Step 1: parse the problem. Step 2: apply the relevant method. Step 3: compute and sanity-check. (gpt/solver_1)",
+      "final_answer": "30",
+      "confidence": 0.75
+    },
+    {
+      "solver_id": "solver_2",
+      "model_key": "gemini",
+      "reasoning": "Step 1: parse the problem. Step 2: apply the relevant method. Step 3: compute and sanity-check. (gemini/solver_2)",
+      "final_answer": "30",
+      "confidence": 0.79
+    },
+    {
+      "solver_id": "solver_3",
+      "model_key": "grok",
+      "reasoning": "Step 1: parse the problem. Step 2: apply the relevant method. Step 3: compute and sanity-check. (grok/solver_3)",
+      "final_answer": "34",
+      "confidence": 0.69
+    }
+  ],
+  "peer_reviews": [
+    {
+      "reviewer_id": "solver_1",
+      "target_id": "solver_2",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic"
+      ],
+      "errors": [],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "solid"
+    },
+    {
+      "reviewer_id": "solver_1",
+      "target_id": "solver_3",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic"
+      ],
+      "errors": [],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "solid"
+    },
+    {
+      "reviewer_id": "solver_2",
+      "target_id": "solver_1",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic"
+      ],
+      "errors": [],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "solid"
+    },
+    {
+      "reviewer_id": "solver_2",
+      "target_id": "solver_3",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic"
+      ],
+      "errors": [],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "solid"
+    },
+    {
+      "reviewer_id": "solver_3",
+      "target_id": "solver_1",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic",
+        "Unjustified leap in the middle"
+      ],
+      "errors": [
+        {
+          "location": "Step 3",
+          "error_type": "logical_error",
+          "description": "A transition between steps is not fully justified.",
+          "severity": "major"
+        }
+      ],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "promising_but_flawed"
+    },
+    {
+      "reviewer_id": "solver_3",
+      "target_id": "solver_2",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic",
+        "Unjustified leap in the middle"
+      ],
+      "errors": [
+        {
+          "location": "Step 3",
+          "error_type": "logical_error",
+          "description": "A transition between steps is not fully justified.",
+          "severity": "major"
+        }
+      ],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "promising_but_flawed"
+    }
+  ],
+  "refinements": [
+    {
+      "solver_id": "solver_1",
+      "model_key": "gpt",
+      "changes_made": [
+        {
+          "critique": "Verify the final computation",
+          "response": "Re-derived and confirmed.",
+          "accepted": true
+        },
+        {
+          "critique": "Consider edge cases",
+          "response": "Edge case does not apply here.",
+          "accepted": false
+        }
+      ],
+      "refined_solution": "Refined reasoning for solver_1 (gpt).",
+      "refined_answer": "30",
+      "confidence": 0.66
+    },
+    {
+      "solver_id": "solver_2",
+      "model_key": "gemini",
+      "changes_made": [
+        {
+          "critique": "Verify the final computation",
+          "response": "Re-derived and confirmed.",
+          "accepted": true
+        },
+        {
+          "critique": "Consider edge cases",
+          "response": "Edge case does not apply here.",
+          "accepted": false
+        }
+      ],
+      "refined_solution": "Refined reasoning for solver_2 (gemini).",
+      "refined_answer": "30",
+      "confidence": 0.72
+    },
+    {
+      "solver_id": "solver_3",
+      "model_key": "grok",
+      "changes_made": [
+        {
+          "critique": "Verify the final computation",
+          "response": "Re-derived and confirmed.",
+          "accepted": true
+        },
+        {
+          "critique": "Consider edge cases",
+          "response": "Edge case does not apply here.",
+          "accepted": false
+        }
+      ],
+      "refined_solution": "Refined reasoning for solver_3 (grok).",
+      "refined_answer": "30",
+      "confidence": 0.93
+    }
+  ],
+  "judge_decision": {
+    "judge_model_key": "claude",
+    "winner": "solver_1",
+    "confidence": 0.92,
+    "reasoning": "solver_1 presents the most rigorous and well-verified solution."
+  },
+  "debate_final_answer": "30",
+  "single_model_answers": {
+    "gpt": "31",
+    "claude": "30",
+    "gemini": "30",
+    "grok": "33"
+  }
+}

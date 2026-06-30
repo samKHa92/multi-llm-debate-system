@@ -1,0 +1,288 @@
+{
+  "run_id": "mock_demo",
+  "problem": {
+    "id": "game_002",
+    "category": "game_theory",
+    "question": "In a one-shot Prisoner's Dilemma between two rational, self-interested players, what is each player's dominant strategy? Answer in one word.",
+    "correct_answer": "defect",
+    "accepted_answers": [
+      "defect",
+      "defection",
+      "betray"
+    ],
+    "answer_type": "short_text",
+    "difficulty": "medium",
+    "tolerance": null,
+    "source_or_notes": "Defect strictly dominates cooperate in the one-shot game."
+  },
+  "assigned_roles": {
+    "judge": "gemini",
+    "solvers": [
+      "gpt",
+      "claude",
+      "grok"
+    ],
+    "solver_slots": {
+      "solver_1": "gpt",
+      "solver_2": "claude",
+      "solver_3": "grok"
+    },
+    "assessments": [
+      {
+        "model_key": "gpt",
+        "solver_confidence": 0.53,
+        "judge_confidence": 0.67,
+        "reasoning": "As gpt, I weighed my strengths for problem game_002. Solver confidence 0.53, judge confidence 0.67."
+      },
+      {
+        "model_key": "claude",
+        "solver_confidence": 0.64,
+        "judge_confidence": 0.65,
+        "reasoning": "As claude, I weighed my strengths for problem game_002. Solver confidence 0.64, judge confidence 0.65."
+      },
+      {
+        "model_key": "gemini",
+        "solver_confidence": 0.57,
+        "judge_confidence": 0.88,
+        "reasoning": "As gemini, I weighed my strengths for problem game_002. Solver confidence 0.57, judge confidence 0.88."
+      },
+      {
+        "model_key": "grok",
+        "solver_confidence": 0.92,
+        "judge_confidence": 0.72,
+        "reasoning": "As grok, I weighed my strengths for problem game_002. Solver confidence 0.92, judge confidence 0.72."
+      }
+    ]
+  },
+  "initial_solutions": [
+    {
+      "solver_id": "solver_1",
+      "model_key": "gpt",
+      "reasoning": "Step 1: parse the problem. Step 2: apply the relevant method. Step 3: compute and sanity-check. (gpt/solver_1)",
+      "final_answer": "defect",
+      "confidence": 0.85
+    },
+    {
+      "solver_id": "solver_2",
+      "model_key": "claude",
+      "reasoning": "Step 1: parse the problem. Step 2: apply the relevant method. Step 3: compute and sanity-check. (claude/solver_2)",
+      "final_answer": "alternative_4",
+      "confidence": 0.77
+    },
+    {
+      "solver_id": "solver_3",
+      "model_key": "grok",
+      "reasoning": "Step 1: parse the problem. Step 2: apply the relevant method. Step 3: compute and sanity-check. (grok/solver_3)",
+      "final_answer": "defect",
+      "confidence": 0.86
+    }
+  ],
+  "peer_reviews": [
+    {
+      "reviewer_id": "solver_1",
+      "target_id": "solver_2",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic",
+        "Unjustified leap in the middle"
+      ],
+      "errors": [
+        {
+          "location": "Step 3",
+          "error_type": "logical_error",
+          "description": "A transition between steps is not fully justified.",
+          "severity": "major"
+        }
+      ],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "promising_but_flawed"
+    },
+    {
+      "reviewer_id": "solver_1",
+      "target_id": "solver_3",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic",
+        "Unjustified leap in the middle"
+      ],
+      "errors": [
+        {
+          "location": "Step 3",
+          "error_type": "logical_error",
+          "description": "A transition between steps is not fully justified.",
+          "severity": "major"
+        }
+      ],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "promising_but_flawed"
+    },
+    {
+      "reviewer_id": "solver_2",
+      "target_id": "solver_1",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic"
+      ],
+      "errors": [],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "solid"
+    },
+    {
+      "reviewer_id": "solver_2",
+      "target_id": "solver_3",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic",
+        "Unjustified leap in the middle"
+      ],
+      "errors": [
+        {
+          "location": "Step 3",
+          "error_type": "logical_error",
+          "description": "A transition between steps is not fully justified.",
+          "severity": "major"
+        }
+      ],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "promising_but_flawed"
+    },
+    {
+      "reviewer_id": "solver_3",
+      "target_id": "solver_1",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic"
+      ],
+      "errors": [],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "solid"
+    },
+    {
+      "reviewer_id": "solver_3",
+      "target_id": "solver_2",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic",
+        "Unjustified leap in the middle"
+      ],
+      "errors": [
+        {
+          "location": "Step 3",
+          "error_type": "logical_error",
+          "description": "A transition between steps is not fully justified.",
+          "severity": "major"
+        }
+      ],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "promising_but_flawed"
+    }
+  ],
+  "refinements": [
+    {
+      "solver_id": "solver_1",
+      "model_key": "gpt",
+      "changes_made": [
+        {
+          "critique": "Verify the final computation",
+          "response": "Re-derived and confirmed.",
+          "accepted": true
+        },
+        {
+          "critique": "Consider edge cases",
+          "response": "Edge case does not apply here.",
+          "accepted": false
+        }
+      ],
+      "refined_solution": "Refined reasoning for solver_1 (gpt).",
+      "refined_answer": "alternative_3",
+      "confidence": 0.76
+    },
+    {
+      "solver_id": "solver_2",
+      "model_key": "claude",
+      "changes_made": [
+        {
+          "critique": "Verify the final computation",
+          "response": "Re-derived and confirmed.",
+          "accepted": true
+        },
+        {
+          "critique": "Consider edge cases",
+          "response": "Edge case does not apply here.",
+          "accepted": false
+        }
+      ],
+      "refined_solution": "Refined reasoning for solver_2 (claude).",
+      "refined_answer": "defect",
+      "confidence": 0.85
+    },
+    {
+      "solver_id": "solver_3",
+      "model_key": "grok",
+      "changes_made": [
+        {
+          "critique": "Verify the final computation",
+          "response": "Re-derived and confirmed.",
+          "accepted": true
+        },
+        {
+          "critique": "Consider edge cases",
+          "response": "Edge case does not apply here.",
+          "accepted": false
+        }
+      ],
+      "refined_solution": "Refined reasoning for solver_3 (grok).",
+      "refined_answer": "defect",
+      "confidence": 0.79
+    }
+  ],
+  "judge_decision": {
+    "judge_model_key": "gemini",
+    "winner": "solver_1",
+    "confidence": 0.91,
+    "reasoning": "solver_1 presents the most rigorous and well-verified solution."
+  },
+  "debate_final_answer": "alternative_3",
+  "single_model_answers": {
+    "gpt": "alternative_1",
+    "claude": "alternative_3",
+    "gemini": "defect",
+    "grok": "alternative_3"
+  }
+}

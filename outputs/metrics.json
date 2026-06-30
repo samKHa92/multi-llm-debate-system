@@ -1,20 +1,23 @@
 {
-  "num_problems": 1,
-  "overall_accuracy": 1.0,
-  "improvement_rate": 0.0,
-  "consensus_rate": 1.0,
-  "judge_accuracy_when_disagreement": null,
-  "num_disagreement_problems": 0,
-  "single_llm_baseline_accuracy": 0.75,
+  "num_problems": 25,
+  "overall_accuracy": 0.84,
+  "improvement_rate": 0.04,
+  "consensus_rate": 0.96,
+  "judge_accuracy_when_disagreement": 0.25,
+  "num_disagreement_problems": 4,
+  "single_llm_baseline_accuracy": 0.89,
   "single_llm_accuracy_by_model": {
     "gpt": 1.0,
     "claude": 1.0,
-    "gemini": 0.0,
+    "gemini": 0.56,
     "grok": 1.0
   },
   "simple_voting_baseline_accuracy": 1.0,
-  "full_debate_system_accuracy": 1.0,
+  "full_debate_system_accuracy": 0.84,
   "debate_accuracy_by_category": {
-    "mathematical_reasoning": 1.0
+    "game_theory": 1.0,
+    "logic_constraint": 0.8571428571428571,
+    "mathematical_reasoning": 0.875,
+    "physics_science": 0.6666666666666666
   }
 }

@@ -1,0 +1,270 @@
+{
+  "run_id": "mock_demo",
+  "problem": {
+    "id": "phys_005",
+    "category": "physics_science",
+    "question": "How much energy in joules is required to raise the temperature of 1 kg of water by 10 degrees Celsius? Use specific heat capacity 4186 J/(kg*K).",
+    "correct_answer": "41860",
+    "accepted_answers": [
+      "41860"
+    ],
+    "answer_type": "integer",
+    "difficulty": "easy",
+    "tolerance": null,
+    "source_or_notes": "Q = m*c*dT = 1*4186*10 = 41860 J."
+  },
+  "assigned_roles": {
+    "judge": "grok",
+    "solvers": [
+      "gpt",
+      "claude",
+      "gemini"
+    ],
+    "solver_slots": {
+      "solver_1": "gpt",
+      "solver_2": "claude",
+      "solver_3": "gemini"
+    },
+    "assessments": [
+      {
+        "model_key": "gpt",
+        "solver_confidence": 0.76,
+        "judge_confidence": 0.63,
+        "reasoning": "As gpt, I weighed my strengths for problem phys_005. Solver confidence 0.76, judge confidence 0.63."
+      },
+      {
+        "model_key": "claude",
+        "solver_confidence": 0.69,
+        "judge_confidence": 0.61,
+        "reasoning": "As claude, I weighed my strengths for problem phys_005. Solver confidence 0.69, judge confidence 0.61."
+      },
+      {
+        "model_key": "gemini",
+        "solver_confidence": 0.74,
+        "judge_confidence": 0.66,
+        "reasoning": "As gemini, I weighed my strengths for problem phys_005. Solver confidence 0.74, judge confidence 0.66."
+      },
+      {
+        "model_key": "grok",
+        "solver_confidence": 0.6,
+        "judge_confidence": 0.73,
+        "reasoning": "As grok, I weighed my strengths for problem phys_005. Solver confidence 0.6, judge confidence 0.73."
+      }
+    ]
+  },
+  "initial_solutions": [
+    {
+      "solver_id": "solver_1",
+      "model_key": "gpt",
+      "reasoning": "Step 1: parse the problem. Step 2: apply the relevant method. Step 3: compute and sanity-check. (gpt/solver_1)",
+      "final_answer": "41864",
+      "confidence": 0.85
+    },
+    {
+      "solver_id": "solver_2",
+      "model_key": "claude",
+      "reasoning": "Step 1: parse the problem. Step 2: apply the relevant method. Step 3: compute and sanity-check. (claude/solver_2)",
+      "final_answer": "41864",
+      "confidence": 0.61
+    },
+    {
+      "solver_id": "solver_3",
+      "model_key": "gemini",
+      "reasoning": "Step 1: parse the problem. Step 2: apply the relevant method. Step 3: compute and sanity-check. (gemini/solver_3)",
+      "final_answer": "41860",
+      "confidence": 0.76
+    }
+  ],
+  "peer_reviews": [
+    {
+      "reviewer_id": "solver_1",
+      "target_id": "solver_2",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic"
+      ],
+      "errors": [],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "solid"
+    },
+    {
+      "reviewer_id": "solver_1",
+      "target_id": "solver_3",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic"
+      ],
+      "errors": [],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "solid"
+    },
+    {
+      "reviewer_id": "solver_2",
+      "target_id": "solver_1",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic"
+      ],
+      "errors": [],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "solid"
+    },
+    {
+      "reviewer_id": "solver_2",
+      "target_id": "solver_3",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic",
+        "Unjustified leap in the middle"
+      ],
+      "errors": [
+        {
+          "location": "Step 3",
+          "error_type": "logical_error",
+          "description": "A transition between steps is not fully justified.",
+          "severity": "major"
+        }
+      ],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "promising_but_flawed"
+    },
+    {
+      "reviewer_id": "solver_3",
+      "target_id": "solver_1",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic",
+        "Unjustified leap in the middle"
+      ],
+      "errors": [
+        {
+          "location": "Step 3",
+          "error_type": "logical_error",
+          "description": "A transition between steps is not fully justified.",
+          "severity": "major"
+        }
+      ],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "promising_but_flawed"
+    },
+    {
+      "reviewer_id": "solver_3",
+      "target_id": "solver_2",
+      "strengths": [
+        "Clear setup",
+        "Reasonable method"
+      ],
+      "weaknesses": [
+        "Could double-check arithmetic"
+      ],
+      "errors": [],
+      "suggested_changes": [
+        "Verify the final computation",
+        "Consider edge cases"
+      ],
+      "overall_assessment": "solid"
+    }
+  ],
+  "refinements": [
+    {
+      "solver_id": "solver_1",
+      "model_key": "gpt",
+      "changes_made": [
+        {
+          "critique": "Verify the final computation",
+          "response": "Re-derived and confirmed.",
+          "accepted": true
+        },
+        {
+          "critique": "Consider edge cases",
+          "response": "Edge case does not apply here.",
+          "accepted": false
+        }
+      ],
+      "refined_solution": "Refined reasoning for solver_1 (gpt).",
+      "refined_answer": "41864",
+      "confidence": 0.94
+    },
+    {
+      "solver_id": "solver_2",
+      "model_key": "claude",
+      "changes_made": [
+        {
+          "critique": "Verify the final computation",
+          "response": "Re-derived and confirmed.",
+          "accepted": true
+        },
+        {
+          "critique": "Consider edge cases",
+          "response": "Edge case does not apply here.",
+          "accepted": false
+        }
+      ],
+      "refined_solution": "Refined reasoning for solver_2 (claude).",
+      "refined_answer": "41864",
+      "confidence": 0.79
+    },
+    {
+      "solver_id": "solver_3",
+      "model_key": "gemini",
+      "changes_made": [
+        {
+          "critique": "Verify the final computation",
+          "response": "Re-derived and confirmed.",
+          "accepted": true
+        },
+        {
+          "critique": "Consider edge cases",
+          "response": "Edge case does not apply here.",
+          "accepted": false
+        }
+      ],
+      "refined_solution": "Refined reasoning for solver_3 (gemini).",
+      "refined_answer": "41860",
+      "confidence": 0.7
+    }
+  ],
+  "judge_decision": {
+    "judge_model_key": "grok",
+    "winner": "solver_3",
+    "confidence": 0.81,
+    "reasoning": "solver_3 presents the most rigorous and well-verified solution."
+  },
+  "debate_final_answer": "41860",
+  "single_model_answers": {
+    "gpt": "41860",
+    "claude": "41863",
+    "gemini": "41864",
+    "grok": "41860"
+  }
+}
