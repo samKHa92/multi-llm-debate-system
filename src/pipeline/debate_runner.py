@@ -1,8 +1,4 @@
-"""The orchestrator: runs the full 4-stage debate for a single problem.
-
-It is intentionally provider-agnostic - it only talks to ``BaseLLMClient``
-objects, so the same code path runs in mock mode and real mode.
-"""
+"""Orchestrator: runs the full 4-stage debate for a single problem."""
 
 from __future__ import annotations
 
@@ -35,22 +31,11 @@ from ..prompts import (
 from ..utils import coerce_float, extract_json, save_json
 from .role_assignment import assign_roles, collect_self_assessments
 
-
-# ---------------------------------------------------------------------------
-# Client factory
-# ---------------------------------------------------------------------------
-# Per-model skill knobs for mock mode. Tuned so that GPT > Claude > Gemini >
-# Grok, baselines land around ~0.55-0.7, and the debate system beats both
-# baselines after refinement + judging.
+# Mock-mode skill knobs: gpt > claude > gemini > grok.
 _MOCK_SKILL = {"gpt": 0.72, "claude": 0.68, "gemini": 0.6, "grok": 0.55}
 
 
 def build_clients(mode: str, problems: list[Problem] | None = None) -> dict[str, BaseLLMClient]:
-    """Construct the four logical clients keyed by model name.
-
-    mode="mock" -> four MockLLMClients (no keys needed).
-    mode="real" -> the real provider wrappers (require API keys in .env).
-    """
     if mode == "mock":
         answer_key = {
             p.id: {"correct": p.correct_answer, "answer_type": p.answer_type}
@@ -67,25 +52,22 @@ def build_clients(mode: str, problems: list[Problem] | None = None) -> dict[str,
         }
 
     if mode == "real":
-        # Import lazily so mock mode never imports optional SDK wrappers.
         from ..llm_clients.openai_client import OpenAIClient
         from ..llm_clients.anthropic_client import AnthropicClient
         from ..llm_clients.google_client import GoogleClient
         from ..llm_clients.xai_client import XAIClient
 
-        return {
-            "gpt": OpenAIClient(),
-            "claude": AnthropicClient(),
-            "gemini": GoogleClient(),
-            "grok": XAIClient(),
+        factories = {
+            "gpt": OpenAIClient,
+            "claude": AnthropicClient,
+            "gemini": GoogleClient,
+            "grok": XAIClient,
         }
+        return {key: factories[key]() for key in MODEL_KEYS}
 
     raise ValueError(f"Unknown mode: {mode!r} (expected 'mock' or 'real').")
 
 
-# ---------------------------------------------------------------------------
-# Parsing helpers (turn raw JSON-ish text into validated models)
-# ---------------------------------------------------------------------------
 def _parse_solver(raw: str, solver_id: str, model_key: str) -> SolverSolution:
     data = extract_json(raw)
     return SolverSolution(
@@ -156,31 +138,25 @@ def _parse_judge(raw: str, judge_key: str, valid_slots: list[str]) -> JudgeDecis
     )
 
 
-# ---------------------------------------------------------------------------
-# Single-problem orchestration
-# ---------------------------------------------------------------------------
 def run_problem(
     clients: dict[str, BaseLLMClient],
     problem: Problem,
     run_id: str,
     save: bool = True,
 ) -> ProblemRunResult:
-    """Run all stages for one problem and (optionally) cache the trace."""
-    # --- Stage 0 + 0.5: role self-assessment and deterministic assignment ---
     assessments = collect_self_assessments(clients, problem)
     roles = assign_roles(assessments)
     judge_client = clients[roles.judge]
 
-    # --- Stage 1: independent solver solutions ---
+    # Stage 1: independent solver solutions.
     solutions: list[SolverSolution] = []
     for slot, model_key in roles.solver_slots.items():
         raw = clients[model_key].generate(
             build_solver_prompt(problem, slot), temperature=SOLVER_TEMPERATURE
         )
         solutions.append(_parse_solver(raw, slot, model_key))
-    sol_by_slot = {s.solver_id: s for s in solutions}
 
-    # --- Stage 2: peer review (each solver reviews the other two) ---
+    # Stage 2: each solver reviews the other two.
     reviews: list[PeerReview] = []
     for reviewer in solutions:
         for target in solutions:
@@ -192,7 +168,7 @@ def run_problem(
             )
             reviews.append(_parse_review(raw, reviewer.solver_id, target.solver_id))
 
-    # --- Stage 3: refinement (each solver sees the 2 reviews about itself) ---
+    # Stage 3: each solver refines given the 2 reviews about itself.
     refinements: list[RefinementResult] = []
     for sol in solutions:
         own_reviews = [r for r in reviews if r.target_id == sol.solver_id]
@@ -203,18 +179,16 @@ def run_problem(
         refinements.append(_parse_refinement(raw, sol.solver_id, sol.model_key))
     refine_by_slot = {r.solver_id: r for r in refinements}
 
-    # --- Stage 4: final judgment ---
+    # Stage 4: judge picks the winning refined answer.
     valid_slots = [s.solver_id for s in solutions]
     raw = judge_client.generate(
         build_judge_prompt(problem, solutions, reviews, refinements),
         temperature=JUDGE_TEMPERATURE,
     )
     judge_decision = _parse_judge(raw, roles.judge, valid_slots)
-
-    # Copy the winning solver's refined answer as the final debate answer.
     debate_final_answer = refine_by_slot[judge_decision.winner].refined_answer
 
-    # --- Baseline: single-model answers (one shot, no debate) ---
+    # Single-model baseline: one shot per model, no debate.
     single_model_answers: dict[str, str] = {}
     for key, client in clients.items():
         raw = client.generate(
@@ -236,12 +210,10 @@ def run_problem(
     )
 
     if save:
-        out_path = RUNS_DIR / run_id / f"{problem.id}.json"
-        save_json(out_path, result.model_dump())
+        save_json(run_path(run_id, problem.id), result.model_dump())
 
     return result
 
 
 def run_path(run_id: str, problem_id: str) -> Path:
-    """Where a given problem's trace is cached."""
     return RUNS_DIR / run_id / f"{problem_id}.json"

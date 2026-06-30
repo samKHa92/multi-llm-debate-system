@@ -1,10 +1,4 @@
-"""Pydantic schemas used across the whole pipeline.
-
-These models give us:
-  * validation of LLM output (so malformed JSON is caught early),
-  * a single source of truth for the data shapes,
-  * easy (de)serialization to/from JSON for caching runs.
-"""
+"""Pydantic schemas shared across the pipeline."""
 
 from __future__ import annotations
 
@@ -13,65 +7,40 @@ from typing import Any, Optional
 from pydantic import BaseModel, Field
 
 
-# ---------------------------------------------------------------------------
-# Dataset
-# ---------------------------------------------------------------------------
 class Problem(BaseModel):
-    """A single challenge problem from the dataset."""
-
     id: str
     category: str
     question: str
     correct_answer: str
-    # All answers that should be treated as correct (synonyms / equivalent forms).
     accepted_answers: list[str] = Field(default_factory=list)
-    # One of: integer | float | multiple_choice | short_text
-    answer_type: str = "short_text"
+    answer_type: str = "short_text"  # integer | float | multiple_choice | short_text
     difficulty: str = "hard"
-    # Optional numeric tolerance used when answer_type == "float".
-    tolerance: Optional[float] = None
+    tolerance: Optional[float] = None  # used when answer_type == "float"
     source_or_notes: str = ""
 
 
-# ---------------------------------------------------------------------------
-# Stage 0: role self-assessment
-# ---------------------------------------------------------------------------
 class RoleSelfAssessment(BaseModel):
-    """How a single model rates itself for this problem."""
-
-    model_key: str  # gpt | claude | gemini | grok
+    model_key: str
     solver_confidence: float = 0.5
     judge_confidence: float = 0.5
     reasoning: str = ""
 
 
-# ---------------------------------------------------------------------------
-# Stage 0.5: deterministic role assignment
-# ---------------------------------------------------------------------------
 class AssignedRoles(BaseModel):
-    """Result of the deterministic role assignment algorithm."""
-
-    judge: str  # model_key chosen as judge
-    solvers: list[str]  # the three model_keys acting as solvers
-    # solver slot id (solver_1/2/3) -> model_key, kept for traceability
+    judge: str
+    solvers: list[str]
     solver_slots: dict[str, str] = Field(default_factory=dict)
     assessments: list[RoleSelfAssessment] = Field(default_factory=list)
 
 
-# ---------------------------------------------------------------------------
-# Stage 1: independent solver solutions
-# ---------------------------------------------------------------------------
 class SolverSolution(BaseModel):
-    solver_id: str  # solver_1 | solver_2 | solver_3
-    model_key: str  # which model produced it
+    solver_id: str
+    model_key: str
     reasoning: str = ""
     final_answer: str = ""
     confidence: float = 0.5
 
 
-# ---------------------------------------------------------------------------
-# Stage 2: peer review
-# ---------------------------------------------------------------------------
 class ReviewError(BaseModel):
     location: str = ""
     error_type: str = ""
@@ -80,8 +49,8 @@ class ReviewError(BaseModel):
 
 
 class PeerReview(BaseModel):
-    reviewer_id: str  # the solver writing the review
-    target_id: str  # the solver being reviewed
+    reviewer_id: str
+    target_id: str
     strengths: list[str] = Field(default_factory=list)
     weaknesses: list[str] = Field(default_factory=list)
     errors: list[ReviewError] = Field(default_factory=list)
@@ -89,9 +58,6 @@ class PeerReview(BaseModel):
     overall_assessment: str = ""
 
 
-# ---------------------------------------------------------------------------
-# Stage 3: refinement
-# ---------------------------------------------------------------------------
 class CritiqueResponse(BaseModel):
     critique: str = ""
     response: str = ""
@@ -107,22 +73,14 @@ class RefinementResult(BaseModel):
     confidence: float = 0.5
 
 
-# ---------------------------------------------------------------------------
-# Stage 4: final judgment
-# ---------------------------------------------------------------------------
 class JudgeDecision(BaseModel):
     judge_model_key: str
-    winner: str  # solver_1 | solver_2 | solver_3
+    winner: str
     confidence: float = 0.5
     reasoning: str = ""
 
 
-# ---------------------------------------------------------------------------
-# Full per-problem trace
-# ---------------------------------------------------------------------------
 class ProblemRunResult(BaseModel):
-    """Everything produced for one problem, saved to outputs/runs/."""
-
     run_id: str
     problem: Problem
     assigned_roles: AssignedRoles
@@ -131,16 +89,10 @@ class ProblemRunResult(BaseModel):
     refinements: list[RefinementResult] = Field(default_factory=list)
     judge_decision: JudgeDecision
     debate_final_answer: str = ""
-    # Single-model baseline answers, one per model_key.
     single_model_answers: dict[str, str] = Field(default_factory=dict)
 
 
-# ---------------------------------------------------------------------------
-# Evaluation
-# ---------------------------------------------------------------------------
 class EvaluationRow(BaseModel):
-    """One row of outputs/results.csv."""
-
     problem_id: str
     category: str
     correct_answer: str
@@ -158,11 +110,9 @@ class EvaluationRow(BaseModel):
     consensus_type: str = ""  # full | partial | none
     improved_after_refinement: bool = False
     judge_correct_when_disagreement: Optional[bool] = None
-    # Single-model baseline correctness (best-effort, one column per model).
     single_model_correct: dict[str, bool] = Field(default_factory=dict)
 
     def to_flat_dict(self) -> dict[str, Any]:
-        """Flatten nested fields so pandas writes a clean CSV."""
         data = self.model_dump()
         single = data.pop("single_model_correct", {}) or {}
         for model_key, ok in single.items():

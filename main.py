@@ -1,14 +1,8 @@
-"""Command-line entry point for the Multi-LLM Collaborative Debate System.
+"""CLI entry point for the Multi-LLM Collaborative Debate System.
 
-Examples
---------
-Run the full pipeline offline (no API keys) on the first 3 problems:
+Examples:
     python main.py --mode mock --limit 3
-
-Run on the whole dataset with real APIs (requires keys in .env):
     python main.py --mode real --problems data/problems.jsonl
-
-Resume a named run, skipping problems already cached:
     python main.py --mode real --run-id final_run_01 --skip-existing true
 """
 
@@ -19,11 +13,27 @@ import time
 
 from tqdm import tqdm
 
-from src.config import DEFAULT_PROBLEMS_FILE, PLOTS_DIR, RESULTS_CSV, ensure_dirs
+from src.config import (
+    DEFAULT_PROBLEMS_FILE,
+    PLOTS_DIR,
+    RESULTS_CSV,
+    ensure_dirs,
+    plots_dir_for_run,
+)
+from src.llm_clients.base import BaseLLMClient
+from src.models import Problem
 from src.pipeline.debate_runner import build_clients, run_path, run_problem
 from src.pipeline.evaluation import evaluate_run
 from src.plotting import generate_all_plots
 from src.utils import load_problems
+
+_SUMMARY_FIELDS = [
+    ("Single-LLM baseline accuracy", "single_llm_baseline_accuracy"),
+    ("Simple voting baseline", "simple_voting_baseline_accuracy"),
+    ("Full debate system accuracy", "full_debate_system_accuracy"),
+    ("Improvement rate", "improvement_rate"),
+    ("Consensus rate", "consensus_rate"),
+]
 
 
 def _str2bool(value: str) -> bool:
@@ -46,6 +56,40 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _debate_all(
+    clients: dict[str, BaseLLMClient],
+    problems: list[Problem],
+    run_id: str,
+    skip_existing: bool,
+) -> None:
+    for problem in tqdm(problems, desc="Debating", unit="problem"):
+        if skip_existing and run_path(run_id, problem.id).exists():
+            tqdm.write(f"  skip {problem.id} (cached)")
+            continue
+        run_problem(clients, problem, run_id=run_id, save=True)
+
+
+def _print_summary(metrics: dict) -> None:
+    print("\n=== Summary metrics ===")
+    for label, key in _SUMMARY_FIELDS:
+        print(f"  {label:<29}: {metrics[key]:.1%}")
+    judge_acc = metrics.get("judge_accuracy_when_disagreement")
+    judge_str = "n/a" if judge_acc is None else f"{judge_acc:.1%}"
+    print(f"  {'Judge accuracy (disagreement)':<29}: {judge_str}")
+
+
+def _emit_plots(metrics: dict, run_id: str) -> None:
+    print("\nGenerating plots...")
+    # Per-run copy preserves history; top-level dir holds the latest.
+    run_plots_dir = plots_dir_for_run(run_id)
+    for path in generate_all_plots(metrics, run_plots_dir):
+        print(f"  saved {path}")
+    print(f"Run plots saved to {run_plots_dir}")
+
+    generate_all_plots(metrics, PLOTS_DIR)
+    print(f"Latest plots refreshed in {PLOTS_DIR}")
+
+
 def main() -> None:
     args = parse_args()
     ensure_dirs()
@@ -59,35 +103,16 @@ def main() -> None:
     clients = build_clients(args.mode, problems)
     print("Clients:", ", ".join(f"{k}={v.model_name}" for k, v in clients.items()))
 
-    # --- Run the debate for each problem (with caching / skip-existing) ---
-    for problem in tqdm(problems, desc="Debating", unit="problem"):
-        if args.skip_existing and run_path(run_id, problem.id).exists():
-            tqdm.write(f"  skip {problem.id} (cached)")
-            continue
-        run_problem(clients, problem, run_id=run_id, save=True)
+    _debate_all(clients, problems, run_id, args.skip_existing)
 
-    # --- Evaluate and write results.csv (+ metrics.json) ---
     print("\nEvaluating run...")
     df, metrics = evaluate_run(run_id)
     print(f"Wrote {RESULTS_CSV} ({len(df)} rows)")
 
-    print("\n=== Summary metrics ===")
-    print(f"  Single-LLM baseline accuracy : {metrics['single_llm_baseline_accuracy']:.1%}")
-    print(f"  Simple voting baseline       : {metrics['simple_voting_baseline_accuracy']:.1%}")
-    print(f"  Full debate system accuracy  : {metrics['full_debate_system_accuracy']:.1%}")
-    print(f"  Improvement rate             : {metrics['improvement_rate']:.1%}")
-    print(f"  Consensus rate               : {metrics['consensus_rate']:.1%}")
-    judge_acc = metrics.get("judge_accuracy_when_disagreement")
-    judge_str = "n/a" if judge_acc is None else f"{judge_acc:.1%}"
-    print(f"  Judge accuracy (disagreement): {judge_str}")
+    _print_summary(metrics)
 
-    # --- Plots ---
     if not args.no_plots:
-        print("\nGenerating plots...")
-        paths = generate_all_plots(metrics)
-        for p in paths:
-            print(f"  saved {p}")
-        print(f"Plots saved to {PLOTS_DIR}")
+        _emit_plots(metrics, run_id)
 
 
 if __name__ == "__main__":

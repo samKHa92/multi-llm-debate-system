@@ -1,8 +1,4 @@
-"""xAI (Grok) client wrapper.
-
-xAI exposes an OpenAI-compatible REST API, so we reuse the ``openai`` SDK and
-just point it at the xAI base URL. Requires ``XAI_API_KEY``.
-"""
+"""xAI (Grok) client wrapper, OpenAI-compatible. Requires XAI_API_KEY."""
 
 from __future__ import annotations
 
@@ -21,7 +17,7 @@ class XAIClient(BaseLLMClient):
             )
         base_url = get_env("XAI_BASE_URL", "https://api.x.ai/v1")
         try:
-            from openai import OpenAI  # xAI is OpenAI-compatible
+            from openai import OpenAI
         except ImportError as exc:  # pragma: no cover
             raise RuntimeError("The 'openai' package is required for XAIClient. Run: pip install openai") from exc
         self._client = OpenAI(api_key=api_key, base_url=base_url)

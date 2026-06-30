@@ -15,7 +15,7 @@ def _assess(model_key, judge_conf, solver_conf=0.5):
 def test_highest_judge_confidence_becomes_judge():
     assessments = [
         _assess("gpt", 0.40),
-        _assess("claude", 0.90),  # clearly the best judge
+        _assess("claude", 0.90),
         _assess("gemini", 0.50),
         _assess("grok", 0.60),
     ]
@@ -26,7 +26,6 @@ def test_highest_judge_confidence_becomes_judge():
 
 
 def test_tie_break_uses_fixed_priority_order():
-    # All tied on judge confidence -> priority gpt > claude > gemini > grok.
     assessments = [
         _assess("grok", 0.70),
         _assess("gemini", 0.70),
@@ -39,14 +38,13 @@ def test_tie_break_uses_fixed_priority_order():
 
 def test_solver_slots_follow_priority_order():
     assessments = [
-        _assess("gpt", 0.95),  # gpt is judge
+        _assess("gpt", 0.95),
         _assess("grok", 0.30),
         _assess("claude", 0.40),
         _assess("gemini", 0.20),
     ]
     roles = assign_roles(assessments)
     assert roles.judge == "gpt"
-    # Remaining solvers ordered by priority: claude, gemini, grok.
     assert roles.solver_slots == {
         "solver_1": "claude",
         "solver_2": "gemini",
@@ -58,7 +56,7 @@ def test_deterministic_repeatable():
     assessments = [
         _assess("gpt", 0.5),
         _assess("claude", 0.8),
-        _assess("gemini", 0.8),  # tie with claude -> claude wins by priority
+        _assess("gemini", 0.8),
         _assess("grok", 0.1),
     ]
     first = assign_roles(assessments)

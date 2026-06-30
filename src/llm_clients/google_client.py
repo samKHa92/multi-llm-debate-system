@@ -1,23 +1,4 @@
-"""Google (Gemini) client wrapper.
-
-Supports two authentication modes:
-
-1. **API key** (Gemini Developer API / AI Studio)
-   Set ``GOOGLE_API_KEY`` in ``.env``.
-
-2. **Application Default Credentials** (Gemini Enterprise Agent Platform)
-   Required when your org disallows API keys. Set:
-     GOOGLE_GENAI_USE_ENTERPRISE=true
-     GOOGLE_CLOUD_PROJECT=your-project-id
-     GOOGLE_CLOUD_LOCATION=global
-
-   Then authenticate locally once:
-     gcloud auth application-default login
-     gcloud auth application-default set-quota-project your-project-id
-
-   Also enable the **Agent Platform API** in GCP and ensure your account has
-   the ``roles/aiplatform.user`` role on the project.
-"""
+"""Google (Gemini) client wrapper: API key or ADC (enterprise) auth."""
 
 from __future__ import annotations
 
@@ -30,7 +11,6 @@ def _truthy(value: str | None) -> bool:
 
 
 def _enterprise_enabled() -> bool:
-    # Either env var enables Gemini Enterprise / Vertex-style ADC auth.
     return _truthy(get_env("GOOGLE_GENAI_USE_ENTERPRISE")) or _truthy(
         get_env("GOOGLE_GENAI_USE_VERTEXAI")
     )
@@ -39,12 +19,10 @@ def _enterprise_enabled() -> bool:
 def _use_adc() -> bool:
     if _enterprise_enabled():
         return True
-    # If a GCP project is set but no API key, assume ADC mode.
     return bool(get_env("GOOGLE_CLOUD_PROJECT")) and not get_env("GOOGLE_API_KEY")
 
 
 def _normalize_enterprise_model(model_name: str) -> str:
-    """Map legacy Vertex ids to Enterprise-friendly names when possible."""
     aliases = {
         "gemini-2.0-flash-001": "gemini-2.0-flash",
         "gemini-2.0-flash-lite-001": "gemini-2.0-flash-lite",
@@ -67,7 +45,7 @@ class GoogleClient(BaseLLMClient):
         try:
             from google import genai
             from google.genai import types as genai_types
-        except ImportError as exc:  # pragma: no cover
+        except ImportError as exc:
             raise RuntimeError(
                 "The 'google-genai' package is required for GoogleClient. Run: pip install google-genai"
             ) from exc
@@ -84,7 +62,6 @@ class GoogleClient(BaseLLMClient):
                     "  gcloud auth application-default set-quota-project YOUR_PROJECT"
                 )
             location = get_env("GOOGLE_CLOUD_LOCATION", "global")
-            # Enterprise Agent Platform uses the v1 API surface.
             return genai.Client(
                 enterprise=True,
                 project=project,

@@ -1,9 +1,4 @@
-"""Shared chat-completion helper for OpenAI-compatible APIs.
-
-Newer OpenAI models (e.g. gpt-5.x) require ``max_completion_tokens`` instead of
-``max_tokens``. xAI and older OpenAI models still use ``max_tokens``. We try
-both so each client works without hard-coding model names.
-"""
+"""Shared chat-completion helper for OpenAI-compatible APIs."""
 
 from __future__ import annotations
 
@@ -27,7 +22,7 @@ def chat_completion(
     }
     last_error: BadRequestError | None = None
 
-    # Prefer max_completion_tokens first (newer OpenAI), then max_tokens (xAI / legacy).
+    # Newer OpenAI models want max_completion_tokens; xAI/legacy use max_tokens.
     for param in ("max_completion_tokens", "max_tokens"):
         try:
             resp = client.chat.completions.create(**base, **{param: max_tokens})

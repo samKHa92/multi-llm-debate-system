@@ -1,8 +1,4 @@
-"""LLM client implementations.
-
-All clients implement the same :class:`BaseLLMClient` interface so they are
-fully interchangeable in the pipeline.
-"""
+"""LLM client implementations sharing the BaseLLMClient interface."""
 
 from .base import BaseLLMClient
 from .mock_client import MockLLMClient

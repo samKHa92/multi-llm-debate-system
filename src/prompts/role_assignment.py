@@ -1,4 +1,4 @@
-"""Stage 0 prompt: each model self-assesses Solver vs Judge fitness."""
+"""Stage 0 prompt: each model self-assesses solver vs judge fitness."""
 
 from __future__ import annotations
 

@@ -1,11 +1,4 @@
-"""Answer normalization and automatic correctness checking.
-
-The dataset uses four ``answer_type`` values and we check each appropriately:
-  * integer        -> compare as integers
-  * float          -> compare numerically, within ``tolerance`` if provided
-  * multiple_choice-> compare the normalized option letter
-  * short_text     -> compare normalized text against accepted answers
-"""
+"""Answer normalization and automatic correctness checking."""
 
 from __future__ import annotations
 
@@ -13,20 +6,15 @@ import re
 
 from ..models import Problem
 
-# Characters/words we strip so that "153." == "153" and "$1,000" == "1000".
 _PUNCT_RE = re.compile(r"[\s,$%]+")
+_DEFAULT_FLOAT_TOL = 1e-6
 
 
 def normalize_answer(answer: str) -> str:
-    """Lowercase, trim, and strip common formatting noise."""
     if answer is None:
         return ""
-    text = str(answer).strip().lower()
-    # Remove trailing period and surrounding quotes/brackets.
-    text = text.strip(" .\"'()[]")
-    # Collapse whitespace and remove thousands separators / currency symbols.
-    text = _PUNCT_RE.sub("", text)
-    return text
+    text = str(answer).strip().lower().strip(" .\"'()[]")
+    return _PUNCT_RE.sub("", text)
 
 
 def _try_float(value: str) -> float | None:
@@ -36,35 +24,44 @@ def _try_float(value: str) -> float | None:
         return None
 
 
+def _match_integer(p: str, t: str, _: Problem) -> bool:
+    pf, tf = _try_float(p), _try_float(t)
+    if pf is None or tf is None:
+        return p == t
+    return round(pf) == round(tf)
+
+
+def _match_float(p: str, t: str, problem: Problem) -> bool:
+    pf, tf = _try_float(p), _try_float(t)
+    if pf is None or tf is None:
+        return p == t
+    tol = problem.tolerance if problem.tolerance is not None else _DEFAULT_FLOAT_TOL
+    return abs(pf - tf) <= tol
+
+
+def _match_multiple_choice(p: str, t: str, _: Problem) -> bool:
+    return p[:1] == t[:1]
+
+
+def _match_short_text(p: str, t: str, _: Problem) -> bool:
+    return p == t
+
+
+_MATCHERS = {
+    "integer": _match_integer,
+    "float": _match_float,
+    "multiple_choice": _match_multiple_choice,
+    "short_text": _match_short_text,
+}
+
+
 def _matches_one(predicted: str, target: str, problem: Problem) -> bool:
-    atype = problem.answer_type
-    p_norm = normalize_answer(predicted)
-    t_norm = normalize_answer(target)
-
-    if atype == "integer":
-        pf, tf = _try_float(p_norm), _try_float(t_norm)
-        if pf is None or tf is None:
-            return p_norm == t_norm
-        return int(round(pf)) == int(round(tf))
-
-    if atype == "float":
-        pf, tf = _try_float(p_norm), _try_float(t_norm)
-        if pf is None or tf is None:
-            return p_norm == t_norm
-        tol = problem.tolerance if problem.tolerance is not None else 1e-6
-        return abs(pf - tf) <= tol
-
-    if atype == "multiple_choice":
-        # Compare just the leading option letter, e.g. "B) foo" -> "b".
-        return (p_norm[:1] if p_norm else "") == (t_norm[:1] if t_norm else "")
-
-    # short_text (default): exact normalized match.
-    return p_norm == t_norm
+    matcher = _MATCHERS.get(problem.answer_type, _match_short_text)
+    return matcher(normalize_answer(predicted), normalize_answer(target), problem)
 
 
 def is_correct(predicted: str, problem: Problem) -> bool:
-    """True if ``predicted`` matches the correct or any accepted answer."""
-    if predicted is None or str(predicted).strip() == "":
+    if predicted is None or not str(predicted).strip():
         return False
     targets = [problem.correct_answer, *problem.accepted_answers]
     return any(_matches_one(predicted, t, problem) for t in targets)

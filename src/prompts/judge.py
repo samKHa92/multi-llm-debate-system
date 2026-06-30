@@ -21,8 +21,7 @@ def build_judge_prompt(
         f"(weaknesses: {r.weaknesses})"
         for r in peer_reviews
     )
-    # NOTE: the exact phrase "<solver_x> refined answer: <value>" is also parsed
-    # by the mock judge, so keep this format stable.
+    # "<solver_x> refined answer: <value>" is parsed by the mock judge; keep stable.
     refined_block = "\n\n".join(
         f"{r.solver_id} refined answer: {r.refined_answer}\n"
         f"  refined solution: {r.refined_solution}\n"

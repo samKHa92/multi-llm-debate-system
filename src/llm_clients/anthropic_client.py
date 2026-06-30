@@ -1,7 +1,4 @@
-"""Anthropic (Claude) client wrapper.
-
-Requires the ``anthropic`` package and an ``ANTHROPIC_API_KEY``.
-"""
+"""Anthropic (Claude) client wrapper. Requires ANTHROPIC_API_KEY."""
 
 from __future__ import annotations
 
@@ -21,7 +18,7 @@ class AnthropicClient(BaseLLMClient):
                 "ANTHROPIC_API_KEY is not set. Add it to your .env file or use --mode mock."
             )
         try:
-            import anthropic  # lazy import
+            import anthropic
         except ImportError as exc:  # pragma: no cover
             raise RuntimeError("The 'anthropic' package is required for AnthropicClient. Run: pip install anthropic") from exc
         self._client = anthropic.Anthropic(api_key=api_key)
@@ -33,6 +30,5 @@ class AnthropicClient(BaseLLMClient):
             temperature=temperature,
             messages=[{"role": "user", "content": prompt}],
         )
-        # Claude returns a list of content blocks; concatenate any text blocks.
         parts = [block.text for block in resp.content if getattr(block, "type", "") == "text"]
         return "".join(parts)

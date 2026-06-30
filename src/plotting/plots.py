@@ -1,12 +1,4 @@
-"""Generate all evaluation plots with matplotlib (no seaborn, no styling deps).
-
-Produces the five required figures in ``outputs/plots/``:
-  * accuracy_comparison.png
-  * accuracy_by_category.png
-  * refinement_improvement.png
-  * consensus_rate.png
-  * judge_accuracy_disagreement.png
-"""
+"""Generate the five evaluation figures with matplotlib."""
 
 from __future__ import annotations
 
@@ -14,16 +6,13 @@ from pathlib import Path
 
 import matplotlib
 
-# Use a non-interactive backend so plots render in headless environments
-# (CI, notebooks run via nbconvert, etc.).
-matplotlib.use("Agg")
+matplotlib.use("Agg")  # headless backend
 import matplotlib.pyplot as plt  # noqa: E402
 
 from ..config import MODEL_DISPLAY, PLOTS_DIR  # noqa: E402
 
 
 def _annotate_bars(ax, bars) -> None:
-    """Write the value on top of each bar."""
     for bar in bars:
         height = bar.get_height()
         ax.annotate(
@@ -37,8 +26,15 @@ def _annotate_bars(ax, bars) -> None:
         )
 
 
+def _save(fig, out_dir: Path, name: str) -> Path:
+    fig.tight_layout()
+    path = out_dir / name
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+    return path
+
+
 def plot_accuracy_comparison(metrics: dict, out_dir: Path) -> Path:
-    """Bar chart: each single model + voting + full debate system."""
     labels: list[str] = []
     values: list[float] = []
     colors: list[str] = []
@@ -46,15 +42,15 @@ def plot_accuracy_comparison(metrics: dict, out_dir: Path) -> Path:
     for key, acc in metrics.get("single_llm_accuracy_by_model", {}).items():
         labels.append(MODEL_DISPLAY.get(key, key))
         values.append(acc)
-        colors.append("#9ecae1")  # light blue for single models
+        colors.append("#9ecae1")
 
     labels.append("Voting")
     values.append(metrics.get("simple_voting_baseline_accuracy", 0.0))
-    colors.append("#fdae6b")  # orange for voting baseline
+    colors.append("#fdae6b")
 
     labels.append("Debate\n(ours)")
     values.append(metrics.get("full_debate_system_accuracy", 0.0))
-    colors.append("#31a354")  # green for our system
+    colors.append("#31a354")
 
     fig, ax = plt.subplots(figsize=(8, 5))
     bars = ax.bar(labels, values, color=colors)
@@ -63,19 +59,13 @@ def plot_accuracy_comparison(metrics: dict, out_dir: Path) -> Path:
     ax.set_ylabel("Accuracy")
     ax.set_title("Accuracy: Single-LLM vs Voting vs Debate System")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
-    fig.tight_layout()
-
-    path = out_dir / "accuracy_comparison.png"
-    fig.savefig(path, dpi=150)
-    plt.close(fig)
-    return path
+    return _save(fig, out_dir, "accuracy_comparison.png")
 
 
 def plot_accuracy_by_category(metrics: dict, out_dir: Path) -> Path:
     by_cat = metrics.get("debate_accuracy_by_category", {})
     cats = list(by_cat.keys())
     vals = [by_cat[c] for c in cats]
-    # Prettify category labels.
     pretty = [c.replace("_", "\n") for c in cats]
 
     fig, ax = plt.subplots(figsize=(9, 5))
@@ -85,17 +75,10 @@ def plot_accuracy_by_category(metrics: dict, out_dir: Path) -> Path:
     ax.set_ylabel("Debate accuracy")
     ax.set_title("Debate System Accuracy by Category")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
-    fig.tight_layout()
-
-    path = out_dir / "accuracy_by_category.png"
-    fig.savefig(path, dpi=150)
-    plt.close(fig)
-    return path
+    return _save(fig, out_dir, "accuracy_by_category.png")
 
 
 def plot_refinement_improvement(metrics: dict, out_dir: Path) -> Path:
-    """Compare overall accuracy of single-LLM, voting, and debate, plus the
-    refinement improvement rate as a separate informative bar."""
     labels = ["Single-LLM", "Voting", "Debate"]
     values = [
         metrics.get("single_llm_baseline_accuracy", 0.0),
@@ -120,12 +103,7 @@ def plot_refinement_improvement(metrics: dict, out_dir: Path) -> Path:
     ax2.grid(axis="y", linestyle="--", alpha=0.4)
 
     fig.suptitle("Effect of Peer Review + Refinement")
-    fig.tight_layout()
-
-    path = out_dir / "refinement_improvement.png"
-    fig.savefig(path, dpi=150)
-    plt.close(fig)
-    return path
+    return _save(fig, out_dir, "refinement_improvement.png")
 
 
 def plot_consensus_rate(metrics: dict, out_dir: Path) -> Path:
@@ -141,12 +119,7 @@ def plot_consensus_rate(metrics: dict, out_dir: Path) -> Path:
         wedgeprops={"edgecolor": "white"},
     )
     ax.set_title("Solver Consensus Rate (initial answers)")
-    fig.tight_layout()
-
-    path = out_dir / "consensus_rate.png"
-    fig.savefig(path, dpi=150)
-    plt.close(fig)
-    return path
+    return _save(fig, out_dir, "consensus_rate.png")
 
 
 def plot_judge_accuracy_disagreement(metrics: dict, out_dir: Path) -> Path:
@@ -161,22 +134,19 @@ def plot_judge_accuracy_disagreement(metrics: dict, out_dir: Path) -> Path:
     ax.set_ylabel("Accuracy")
     ax.set_title(f"Judge Accuracy on Disagreement\n(n = {n_disagree} problems)")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
-    fig.tight_layout()
+    return _save(fig, out_dir, "judge_accuracy_disagreement.png")
 
-    path = out_dir / "judge_accuracy_disagreement.png"
-    fig.savefig(path, dpi=150)
-    plt.close(fig)
-    return path
+
+_PLOTTERS = (
+    plot_accuracy_comparison,
+    plot_accuracy_by_category,
+    plot_refinement_improvement,
+    plot_consensus_rate,
+    plot_judge_accuracy_disagreement,
+)
 
 
 def generate_all_plots(metrics: dict, out_dir: Path | None = None) -> list[Path]:
-    """Generate and save all five plots; returns the list of file paths."""
     out_dir = out_dir or PLOTS_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
-    return [
-        plot_accuracy_comparison(metrics, out_dir),
-        plot_accuracy_by_category(metrics, out_dir),
-        plot_refinement_improvement(metrics, out_dir),
-        plot_consensus_rate(metrics, out_dir),
-        plot_judge_accuracy_disagreement(metrics, out_dir),
-    ]
+    return [plotter(metrics, out_dir) for plotter in _PLOTTERS]

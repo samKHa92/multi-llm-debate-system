@@ -1,8 +1,4 @@
-"""Stage 1 prompt: a solver independently solves the problem.
-
-The same builder powers the single-model baseline (``single=True``), which is
-the "just ask once" comparison required by the evaluation.
-"""
+"""Stage 1 prompt: a solver solves the problem (single=True for baseline)."""
 
 from __future__ import annotations
 

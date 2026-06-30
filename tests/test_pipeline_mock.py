@@ -21,23 +21,19 @@ def test_mock_pipeline_runs_one_problem_end_to_end():
     clients = build_clients("mock", [problem])
     result = run_problem(clients, problem, run_id="pytest_run", save=False)
 
-    # Roles: exactly one judge, three solver slots.
     assert result.assigned_roles.judge in {"gpt", "claude", "gemini", "grok"}
     assert len(result.assigned_roles.solver_slots) == 3
     assert result.assigned_roles.judge not in result.assigned_roles.solvers
 
-    # Stage outputs are all present and well-formed.
     assert len(result.initial_solutions) == 3
     assert len(result.peer_reviews) == 6  # 3 solvers x 2 peers
     assert len(result.refinements) == 3
     assert result.judge_decision.winner in {"solver_1", "solver_2", "solver_3"}
 
-    # The debate final answer is the winner's refined answer.
     winner = result.judge_decision.winner
     winner_refined = next(r.refined_answer for r in result.refinements if r.solver_id == winner)
     assert result.debate_final_answer == winner_refined
 
-    # Single-model baseline produced an answer for each of the 4 models.
     assert set(result.single_model_answers) == {"gpt", "claude", "gemini", "grok"}
 
 

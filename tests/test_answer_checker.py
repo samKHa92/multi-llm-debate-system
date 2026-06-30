@@ -14,7 +14,7 @@ def test_normalize_strips_noise():
 def test_integer_checking():
     p = Problem(id="i", category="c", question="q", correct_answer="153", answer_type="integer")
     assert is_correct("153", p)
-    assert is_correct("153.0", p)  # numeric equality
+    assert is_correct("153.0", p)
     assert is_correct(" 153 ", p)
     assert not is_correct("154", p)
     assert not is_correct("", p)
@@ -26,8 +26,8 @@ def test_float_checking_with_tolerance():
         answer_type="float", tolerance=0.005,
     )
     assert is_correct("0.289", p)
-    assert is_correct("0.288", p)  # within tolerance
-    assert not is_correct("0.30", p)  # outside tolerance
+    assert is_correct("0.288", p)
+    assert not is_correct("0.30", p)
 
 
 def test_multiple_choice_checking():
@@ -36,7 +36,7 @@ def test_multiple_choice_checking():
         answer_type="multiple_choice", accepted_answers=["B"],
     )
     assert is_correct("B", p)
-    assert is_correct("b) bid your true value", p)  # leading letter matches
+    assert is_correct("b) bid your true value", p)
     assert not is_correct("A", p)
 
 

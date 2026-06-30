@@ -1,8 +1,4 @@
-"""Prompt builders for each stage of the debate.
-
-Every builder returns a plain string that asks the model for strict JSON
-output. Keeping prompts in one place makes them easy to read and tune.
-"""
+"""Prompt builders for each stage of the debate."""
 
 from .role_assignment import build_role_assignment_prompt
 from .solver import build_solver_prompt

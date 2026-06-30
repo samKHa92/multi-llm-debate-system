@@ -1,15 +1,11 @@
-"""Turn raw run traces into ``results.csv`` and summary metrics.
-
-This is where the three systems are compared:
-  * Single-LLM baseline (each model answers once)
-  * Simple voting baseline (majority of the 3 initial solver answers)
-  * Full debate system (judge-selected refined answer)
-"""
+"""Turn raw run traces into results.csv and summary metrics."""
 
 from __future__ import annotations
 
 import json
+from collections import defaultdict
 from pathlib import Path
+from statistics import fmean
 
 import pandas as pd
 
@@ -19,11 +15,7 @@ from ..utils import majority_vote
 from .answer_extraction import is_correct, normalize_answer
 
 
-# ---------------------------------------------------------------------------
-# Loading cached traces
-# ---------------------------------------------------------------------------
 def load_run_results(run_id: str) -> list[ProblemRunResult]:
-    """Load every cached problem trace for a run from outputs/runs/{run_id}/."""
     run_dir = RUNS_DIR / run_id
     results: list[ProblemRunResult] = []
     if not run_dir.exists():
@@ -34,9 +26,6 @@ def load_run_results(run_id: str) -> list[ProblemRunResult]:
     return results
 
 
-# ---------------------------------------------------------------------------
-# Per-problem evaluation row
-# ---------------------------------------------------------------------------
 def build_evaluation_row(result: ProblemRunResult) -> EvaluationRow:
     problem = result.problem
     initial = {s.solver_id: s.final_answer for s in result.initial_solutions}
@@ -46,25 +35,21 @@ def build_evaluation_row(result: ProblemRunResult) -> EvaluationRow:
     initial_list = [initial.get(s, "") for s in slots]
     refined_list = [refined.get(s, "") for s in slots]
 
-    # --- Debate system answer ---
     debate_answer = result.debate_final_answer
     debate_ok = is_correct(debate_answer, problem)
 
-    # --- Voting baseline (majority of the 3 INITIAL solver answers) ---
+    # Voting baseline = majority of the 3 initial solver answers.
     voting_answer, consensus_type = majority_vote(initial_list, normalizer=normalize_answer)
     voting_ok = is_correct(voting_answer, problem) if voting_answer else False
 
-    # --- Improvement: did refinement increase the number of correct solvers? ---
     n_correct_initial = sum(is_correct(a, problem) for a in initial_list)
     n_correct_refined = sum(is_correct(a, problem) for a in refined_list)
     improved = n_correct_refined > n_correct_initial
 
-    # --- Judge accuracy when solvers disagree (on refined answers) ---
     refined_norm = {normalize_answer(a) for a in refined_list if str(a).strip()}
     solvers_disagree = len(refined_norm) > 1
     judge_correct_disagree = debate_ok if solvers_disagree else None
 
-    # --- Single-model baseline correctness ---
     single_correct = {
         key: is_correct(result.single_model_answers.get(key, ""), problem)
         for key in MODEL_KEYS
@@ -93,9 +78,6 @@ def build_evaluation_row(result: ProblemRunResult) -> EvaluationRow:
     )
 
 
-# ---------------------------------------------------------------------------
-# Aggregate metrics
-# ---------------------------------------------------------------------------
 def compute_metrics(rows: list[EvaluationRow]) -> dict:
     n = len(rows)
     if n == 0:
@@ -104,29 +86,24 @@ def compute_metrics(rows: list[EvaluationRow]) -> dict:
     def rate(predicate) -> float:
         return sum(1 for r in rows if predicate(r)) / n
 
-    # Judge accuracy only over problems where solvers disagreed.
     disagreement_rows = [r for r in rows if r.judge_correct_when_disagreement is not None]
     judge_acc = (
-        sum(1 for r in disagreement_rows if r.judge_correct_when_disagreement) / len(disagreement_rows)
+        fmean(bool(r.judge_correct_when_disagreement) for r in disagreement_rows)
         if disagreement_rows
         else None
     )
 
-    # Per-model single-LLM baseline accuracy.
     single_acc: dict[str, float] = {}
     for key in MODEL_KEYS:
-        vals = [r.single_model_correct.get(key) for r in rows if key in r.single_model_correct]
+        vals = [r.single_model_correct[key] for r in rows if key in r.single_model_correct]
         if vals:
-            single_acc[key] = sum(1 for v in vals if v) / len(vals)
-    # The "single-LLM baseline" headline number = average across models.
-    single_avg = sum(single_acc.values()) / len(single_acc) if single_acc else 0.0
+            single_acc[key] = fmean(vals)
+    single_avg = fmean(single_acc.values()) if single_acc else 0.0
 
-    # Debate accuracy by category.
-    by_category: dict[str, float] = {}
-    categories = sorted({r.category for r in rows})
-    for cat in categories:
-        cat_rows = [r for r in rows if r.category == cat]
-        by_category[cat] = sum(1 for r in cat_rows if r.debate_correct) / len(cat_rows)
+    cat_correct: dict[str, list[bool]] = defaultdict(list)
+    for r in rows:
+        cat_correct[r.category].append(r.debate_correct)
+    by_category = {cat: fmean(cat_correct[cat]) for cat in sorted(cat_correct)}
 
     return {
         "num_problems": n,
@@ -143,15 +120,11 @@ def compute_metrics(rows: list[EvaluationRow]) -> dict:
     }
 
 
-# ---------------------------------------------------------------------------
-# Top-level: evaluate a run and write results.csv (+ metrics.json)
-# ---------------------------------------------------------------------------
 def evaluate_run(
     run_id: str,
     results: list[ProblemRunResult] | None = None,
     csv_path: Path | None = None,
 ) -> tuple[pd.DataFrame, dict]:
-    """Evaluate a run, write results.csv + metrics.json, return (df, metrics)."""
     if results is None:
         results = load_run_results(run_id)
     if not results:
@@ -165,7 +138,6 @@ def evaluate_run(
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(csv_path, index=False)
 
-    # Save metrics next to the CSV for easy inspection / notebooks.
     metrics_path = csv_path.parent / "metrics.json"
     with open(metrics_path, "w", encoding="utf-8") as fh:
         json.dump(metrics, fh, indent=2)

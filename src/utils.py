@@ -4,28 +4,21 @@ from __future__ import annotations
 
 import json
 import re
+from collections import Counter
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 from .models import Problem
 
+_FENCE_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
 
-# ---------------------------------------------------------------------------
-# JSON / file helpers
-# ---------------------------------------------------------------------------
+
 def load_jsonl(path: str | Path) -> list[dict[str, Any]]:
-    """Load a .jsonl file into a list of dicts (ignores blank lines)."""
-    rows: list[dict[str, Any]] = []
     with open(path, "r", encoding="utf-8") as fh:
-        for line in fh:
-            line = line.strip()
-            if line:
-                rows.append(json.loads(line))
-    return rows
+        return [json.loads(line) for line in fh if line.strip()]
 
 
 def load_problems(path: str | Path) -> list[Problem]:
-    """Load and validate the problem dataset."""
     return [Problem(**row) for row in load_jsonl(path)]
 
 
@@ -41,97 +34,79 @@ def load_json(path: str | Path) -> Any:
         return json.load(fh)
 
 
-# ---------------------------------------------------------------------------
-# Robust JSON extraction from LLM text
-# ---------------------------------------------------------------------------
-def extract_json(text: str) -> dict[str, Any]:
-    """Best-effort extraction of a JSON object from a model's text reply.
+def _loads(candidate: str) -> dict[str, Any] | None:
+    try:
+        parsed = json.loads(candidate)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    return parsed if isinstance(parsed, dict) else None
 
-    Real LLMs sometimes wrap JSON in markdown fences or add stray prose. We
-    try, in order: direct parse, fenced code block, first balanced ``{...}``.
-    Returns an empty dict if nothing parses (callers fall back to defaults).
-    """
+
+def _first_brace_block(text: str) -> str | None:
+    start = text.find("{")
+    if start == -1:
+        return None
+    depth = 0
+    for i in range(start, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+    return None
+
+
+def extract_json(text: str) -> dict[str, Any]:
+    """Best-effort JSON object extraction from an LLM reply; {} on failure."""
     if not text:
         return {}
 
-    # 1) Direct parse.
-    try:
-        return json.loads(text)
-    except (json.JSONDecodeError, TypeError):
-        pass
-
-    # 2) ```json ... ``` fenced block.
-    fence = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    candidates: list[str] = [text]
+    fence = _FENCE_RE.search(text)
     if fence:
-        try:
-            return json.loads(fence.group(1))
-        except json.JSONDecodeError:
-            pass
+        candidates.append(fence.group(1))
+    block = _first_brace_block(text)
+    if block:
+        candidates.append(block)
 
-    # 3) First balanced curly-brace block.
-    start = text.find("{")
-    if start != -1:
-        depth = 0
-        for i in range(start, len(text)):
-            if text[i] == "{":
-                depth += 1
-            elif text[i] == "}":
-                depth -= 1
-                if depth == 0:
-                    candidate = text[start : i + 1]
-                    try:
-                        return json.loads(candidate)
-                    except json.JSONDecodeError:
-                        break
+    for candidate in candidates:
+        parsed = _loads(candidate)
+        if parsed is not None:
+            return parsed
     return {}
 
 
 def coerce_float(value: Any, default: float = 0.5) -> float:
-    """Parse a confidence-like value into a float in [0, 1]."""
     try:
         f = float(value)
     except (TypeError, ValueError):
         return default
-    # Some models answer with percentages (e.g. 85 instead of 0.85).
-    if f > 1.0:
-        f = f / 100.0
+    if f > 1.0:  # tolerate percentages like 85 -> 0.85
+        f /= 100.0
     return max(0.0, min(1.0, f))
 
 
-# ---------------------------------------------------------------------------
-# Voting
-# ---------------------------------------------------------------------------
-def majority_vote(answers: Iterable[str], normalizer=None) -> tuple[str, str]:
-    """Return (winning_answer, consensus_type) from a list of answers.
-
-    consensus_type is one of:
-      * "full"    - all answers agree
-      * "partial" - a strict majority agrees (but not all)
-      * "none"    - no majority (all different / tie)
-    The first occurrence of a winning value is returned in its original form.
-    """
-    answers = [a for a in answers if a is not None and str(a).strip() != ""]
-    if not answers:
+def majority_vote(
+    answers: Iterable[str],
+    normalizer: Callable[[Any], str] | None = None,
+) -> tuple[str, str]:
+    """Return (winning_answer, consensus_type in {full, partial, none})."""
+    norm = normalizer or (lambda x: str(x).strip().lower())
+    cleaned = [a for a in answers if a is not None and str(a).strip()]
+    if not cleaned:
         return "", "none"
 
-    norm = normalizer or (lambda x: str(x).strip().lower())
-    counts: dict[str, int] = {}
-    first_seen: dict[str, str] = {}
-    for a in answers:
-        key = norm(a)
-        counts[key] = counts.get(key, 0) + 1
-        first_seen.setdefault(key, a)
-
-    best_key = max(counts, key=lambda k: counts[k])
-    best_count = counts[best_key]
-    total = len(answers)
+    counts = Counter(norm(a) for a in cleaned)
+    best_key, best_count = counts.most_common(1)[0]
+    total = len(cleaned)
 
     if best_count == total:
         consensus = "full"
     elif best_count > total / 2:
         consensus = "partial"
     else:
-        # No strict majority (e.g. 1/1/1 split or a 1/1 tie).
         return "", "none"
 
-    return first_seen[best_key], consensus
+    winner = next(a for a in cleaned if norm(a) == best_key)
+    return winner, consensus
